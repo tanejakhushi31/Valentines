@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Will you be my Valentine? 💘</title>
+
+  <style>
+    :root{
+      --bg1:#ffe6f0;
+      --bg2:#fff7fb;
+      --pink:#ff4d8d;
+      --pink2:#ff7ab6;
+      --text:#2b2b2b;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 10% 20%, var(--bg2), transparent 60%),
+        radial-gradient(900px 500px at 90% 20%, #fff, transparent 55%),
+        radial-gradient(900px 600px at 50% 100%, #ffd1e3, transparent 60%),
+        linear-gradient(135deg, var(--bg1), #fff);
+      overflow:hidden;
+    }
+
+    /* floating hearts background */
+    .heart{
+      position:absolute;
+      width:14px; height:14px;
+      transform: rotate(45deg);
+      background: rgba(255,77,141,.25);
+      border-radius: 3px;
+      animation: floatUp linear infinite;
+      filter: blur(.1px);
+    }
+    .heart::before, .heart::after{
+      content:"";
+      position:absolute;
+      width:14px; height:14px;
+      background: rgba(255,77,141,.25);
+      border-radius: 50%;
+    }
+    .heart::before{ left:-7px; top:0; }
+    .heart::after{ left:0; top:-7px; }
+
+    @keyframes floatUp{
+      from{ transform: translateY(40vh) rotate(45deg); opacity:0; }
+      10%{ opacity:1; }
+      to{ transform: translateY(-120vh) rotate(45deg); opacity:0; }
+    }
+
+    .card{
+      position:relative;
+      width:min(520px, 92vw);
+      padding:28px 22px 22px;
+      border-radius:24px;
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 40px rgba(0,0,0,.12);
+      border: 1px solid rgba(255,255,255,.6);
+      text-align:center;
+      z-index:2;
+    }
+
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,77,141,.12);
+      border:1px solid rgba(255,77,141,.22);
+      font-weight:600;
+      font-size:14px;
+    }
+
+    h1{
+      margin:14px 0 8px;
+      font-size: clamp(26px, 4vw, 36px);
+      letter-spacing: .2px;
+    }
+    p{
+      margin:0 0 18px;
+      color:#444;
+      line-height:1.4;
+    }
+
+    .btn-area{
+      position:relative;
+      height:120px; /* room for runaway button */
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      margin-top:10px;
+    }
+
+    button{
+      border:0;
+      padding:14px 18px;
+      border-radius:14px;
+      font-size:16px;
+      cursor:pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+      font-weight:700;
+    }
+
+    #yesBtn{
+      background: linear-gradient(135deg, var(--pink), var(--pink2));
+      color:white;
+      box-shadow: 0 12px 22px rgba(255,77,141,.28);
+    }
+    #yesBtn:hover{ transform: translateY(-2px) scale(1.02); }
+
+    #noBtn{
+      position:absolute;
+      left: 58%;
+      top: 58%;
+      transform: translate(-50%, -50%);
+      background:#f1f3f5;
+      color:#444;
+      box-shadow: 0 10px 18px rgba(0,0,0,.10);
+    }
+
+    .msg{
+      margin-top:14px;
+      min-height:26px;
+      font-weight:700;
+    }
+
+    .tiny{
+      margin-top:10px;
+      font-size:12px;
+      color:#666;
+    }
+
+    /* fireworks/confetti canvas */
+    canvas#fx{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:5;
+    }
+
+    /* cute pop */
+    .pop{
+      animation: pop .45s ease;
+    }
+    @keyframes pop{
+      0%{ transform: scale(.95); }
+      60%{ transform: scale(1.03); }
+      100%{ transform: scale(1); }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="fx"></canvas>
+
+  <!-- Floating hearts -->
+  <div id="hearts"></div>
+
+  <div class="card" id="card">
+    <div class="badge">💌 Love-coded & cute</div>
+    <h1>Will you be my Valentine? 💘</h1>
+    <p>There is only one correct answer… and I’m smiling already 🥰</p>
+
+    <div class="btn-area" id="arena">
+      <button id="yesBtn">YES 💞</button>
+      <button id="noBtn" aria-label="No button">No 🙃</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+    <div class="tiny">Tip: try catching “No” 😌</div>
+  </div>
+
+  <script>
+    // ---------- floating hearts background ----------
+    const heartsWrap = document.getElementById("hearts");
+    const makeHeart = () => {
+      const h = document.createElement("div");
+      h.className = "heart";
+      const size = 10 + Math.random() * 18;
+      h.style.width = size + "px";
+      h.style.height = size + "px";
+      h.style.left = (Math.random() * 100) + "vw";
+      h.style.animationDuration = (6 + Math.random() * 8) + "s";
+      h.style.animationDelay = (-Math.random() * 8) + "s";
+      const alpha = 0.10 + Math.random() * 0.22;
+      h.style.background = `rgba(255,77,141,${alpha})`;
+      h.style.setProperty("--a", alpha);
+      // match pseudo elements
+      h.style.filter = "blur(" + (Math.random() * 0.6) + "px)";
+      heartsWrap.appendChild(h);
+    };
+    for(let i=0;i<28;i++) makeHeart();
+
+    // ---------- runaway NO button ----------
+    const arena = document.getElementById("arena");
+    const noBtn = document.getElementById("noBtn");
+    const msg = document.getElementById("msg");
+    const card = document.getElementById("card");
+
+    const teaseLines = [
+      "Hehe, nice try 😌",
+      "Not allowed 😤",
+      "Wrong button bestie 🙃",
+      "You can’t say no to this face 🥹",
+      "Be my valentine naaa 💗"
+    ];
+    let teaseIndex = 0;
+
+    function moveNoButton() {
+      const a = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+
+      // keep button inside arena
+      const padding = 8;
+      const maxX = a.width - b.width - padding;
+      const maxY = a.height - b.height - padding;
+
+      const x = padding + Math.random() * maxX;
+      const y = padding + Math.random() * maxY;
+
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+
+      msg.textContent = teaseLines[teaseIndex % teaseLines.length];
+      teaseIndex++;
+
+      card.classList.remove("pop");
+      void card.offsetWidth; // restart animation
+      card.classList.add("pop");
+    }
+
+    // Run away on hover AND on click (mobile friendly)
+    noBtn.addEventListener("mouseenter", moveNoButton);
+    noBtn.addEventListener("touchstart", (e) => { e.preventDefault(); moveNoButton(); }, {passive:false});
+    noBtn.addEventListener("click", (e) => { e.preventDefault(); moveNoButton(); });
+
+    // ---------- fireworks/confetti effect ----------
+    const canvas = document.getElementById("fx");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    // safer resize (avoid repeated scaling)
+    function resizeSafe(){
+      const dpr = devicePixelRatio || 1;
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    window.addEventListener("resize", resizeSafe);
+    resizeSafe();
+
+    const particles = [];
+    function burst(x, y) {
+      const count = 140;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 80 + Math.random() * 40,
+          size: 2 + Math.random() * 3,
+          gravity: 0.06 + Math.random() * 0.08,
+          // random bright-ish color
+          color: `hsl(${Math.floor(Math.random()*360)}, 90%, 65%)`
+        });
+      }
+    }
+
+    let animId = null;
+    function animate() {
+      ctx.clearRect(0,0,innerWidth,innerHeight);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= 1;
+        p.vy += p.gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        const alpha = Math.max(p.life / 120, 0);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      if (particles.length > 0) {
+        animId = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(animId);
+        animId = null;
+        ctx.clearRect(0,0,innerWidth,innerHeight);
+      }
+    }
+
+    function startFireworks() {
+      // multiple bursts for a celebratory vibe
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      burst(w * 0.30, h * 0.35);
+      burst(w * 0.70, h * 0.35);
+      burst(w * 0.50, h * 0.25);
+      burst(w * 0.50, h * 0.55);
+      if (!animId) animate();
+    }
+
+    // ---------- YES button behavior ----------
+    const yesBtn = document.getElementById("yesBtn");
+    yesBtn.addEventListener("click", () => {
+      msg.textContent = "YAYYYY!!! 💖🥹 You’re officially my Valentine!!!";
+      startFireworks();
+      card.classList.remove("pop");
+      void card.offsetWidth;
+      card.classList.add("pop");
+
+      // Optional: open a prefilled WhatsApp message (uncomment)
+      // window.open("https://wa.me/?text=" + encodeURIComponent("YES 💖 I’ll be your Valentine!"), "_blank");
+    });
+
+    // place the NO button nicely once at load (in case layout differs)
+    requestAnimationFrame(() => {
+      noBtn.style.left = "62%";
+      noBtn.style.top = "62%";
+    });
+  </script>
+</body>
+</html>
